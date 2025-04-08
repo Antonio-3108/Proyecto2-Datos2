@@ -13,6 +13,8 @@ function App() {
     const [cartVisible, setCartVisible] = useState(false);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [productsPerPage] = useState(6);
 
     const addToCart = (product) => {
         setCart((prevCart) => {
@@ -133,6 +135,38 @@ function App() {
         loadCart();
     }, [products, loggedIn]); // Añadir loggedIn como dependencia
 
+    // Función para calcular los productos a mostrar en la página actual
+    const getCurrentProducts = () => {
+        const productsToShow = searchResults.length > 0 ? searchResults : products;
+        const filteredProducts = productsToShow.filter(product => !selectedCategory || product.category_id == selectedCategory);
+        
+        // Calcular índices para la paginación
+        const indexOfLastProduct = currentPage * productsPerPage;
+        const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+        
+        // Devolver los productos de la página actual
+        return filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+    };
+
+    // Función para cambiar de página
+    const paginate = (pageNumber) => {
+        setCurrentPage(pageNumber);
+        // Scroll hacia arriba para mejor experiencia
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // Calcular el número total de páginas
+    const getTotalPages = () => {
+        const productsToShow = searchResults.length > 0 ? searchResults : products;
+        const filteredProducts = productsToShow.filter(product => !selectedCategory || product.category_id == selectedCategory);
+        return Math.ceil(filteredProducts.length / productsPerPage);
+    };
+
+    // Resetear la página cuando cambia la categoría o los resultados de búsqueda
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedCategory, searchResults]);
+
     if (error) {
         return (
             <div style={{
@@ -222,75 +256,242 @@ function App() {
                                     color: darkMode ? "#F0F0F0" : "#222"
                                 }}
                             >
-                                <option value="">All Categories</option>
+                                <option value="">Todas las categorías</option>
                                 {categories.map(category => (
                                     <option key={category.id} value={category.id}>{category.name}</option>
                                 ))}
                             </select>
                         </div>
-                        <ul style={{ listStyle: 'none', padding: 0 }}>
-                            {(searchResults.length > 0 ? searchResults : products)
-                                .filter(product => !selectedCategory || product.category_id == selectedCategory)
-                                .map(product => (
-                                    <li key={product._id || product.id} style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '20px',
-                                        padding: '20px',
-                                        marginBottom: '20px',
-                                        borderRadius: '16px',
-                                        backgroundColor: darkMode ? "#2C2C2C" : '#fff',
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-                                        border: '1px solid #eee',
-                                        transition: 'transform 0.2s ease-in-out'
+
+                        {/* Grid de productos */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                            gap: '20px',
+                            marginBottom: '30px'
+                        }}>
+                            {getCurrentProducts().map(product => (
+                                <div key={product._id || product.id} style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    borderRadius: '16px',
+                                    backgroundColor: darkMode ? "#2C2C2C" : '#fff',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                                    border: '1px solid #eee',
+                                    overflow: 'hidden',
+                                    transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                                    cursor: 'pointer',
+                                    height: '100%'
+                                }}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-5px)';
+                                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.1)';
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.06)';
+                                }}
+                                >
+                                    <div style={{
+                                        height: '200px',
+                                        overflow: 'hidden'
                                     }}>
                                         <img
                                             src={product.image_url}
                                             alt={product.name}
                                             style={{
-                                                width: '100px',
-                                                height: '100px',
+                                                width: '100%',
+                                                height: '100%',
                                                 objectFit: 'cover',
-                                                borderRadius: '12px',
-                                                border: '1px solid #E0E0E0'
+                                                transition: 'transform 0.3s ease-in-out'
+                                            }}
+                                            onMouseOver={(e) => {
+                                                e.currentTarget.style.transform = 'scale(1.05)';
+                                            }}
+                                            onMouseOut={(e) => {
+                                                e.currentTarget.style.transform = 'scale(1)';
                                             }}
                                         />
-                                        <div style={{ flex: 1 }}>
-                                            <h3 style={{
-                                                margin: '0 0 6px 0',
-                                                fontSize: '18px',
-                                                fontWeight: 600,
-                                                color: darkMode ? "#F0F0F0" : "#333"
-                                            }}>
-                                                {product.name}
-                                            </h3>
-                                            <p style={{
-                                                margin: 0,
-                                                fontWeight: "bold",
-                                                fontSize: "16px",
-                                                color: "#2E7D32"
-                                            }}>
-                                                ${product.price.toFixed(2)}
-                                            </p>
+                                    </div>
+                                    <div style={{ 
+                                        padding: '15px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        flexGrow: 1
+                                    }}>
+                                        <h3 style={{
+                                            margin: '0 0 10px 0',
+                                            fontSize: '18px',
+                                            fontWeight: 600,
+                                            color: darkMode ? "#F0F0F0" : "#333"
+                                        }}>
+                                            {product.name}
+                                        </h3>
+                                        <p style={{
+                                            margin: '0 0 15px 0',
+                                            fontWeight: "bold",
+                                            fontSize: "18px",
+                                            color: "#2E7D32"
+                                        }}>
+                                            ${product.price.toFixed(2)}
+                                        </p>
+                                        <button
+                                            onClick={() => addToCart(product)}
+                                            style={{
+                                                marginTop: 'auto',
+                                                padding: "10px",
+                                                borderRadius: "8px",
+                                                border: "none",
+                                                backgroundColor: "#2E7D32",
+                                                color: "#fff",
+                                                cursor: "pointer",
+                                                fontSize: "14px",
+                                                transition: 'background-color 0.2s ease-in-out'
+                                            }}
+                                            onMouseOver={(e) => {
+                                                e.currentTarget.style.backgroundColor = '#1B5E20';
+                                            }}
+                                            onMouseOut={(e) => {
+                                                e.currentTarget.style.backgroundColor = '#2E7D32';
+                                            }}
+                                        >
+                                            🛍️ Agregar al carrito
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Paginación */}
+                        {getTotalPages() > 1 && (
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                marginTop: '30px',
+                                marginBottom: '20px'
+                            }}>
+                                <div style={{
+                                    display: 'flex',
+                                    gap: '8px',
+                                    alignItems: 'center'
+                                }}>
+                                    <button
+                                        onClick={() => paginate(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderRadius: '8px',
+                                            border: '1px solid #ddd',
+                                            backgroundColor: currentPage === 1 ? '#f5f5f5' : darkMode ? '#3C3C3C' : '#fff',
+                                            color: currentPage === 1 ? '#aaa' : darkMode ? '#fff' : '#333',
+                                            cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                                            fontSize: '14px'
+                                        }}
+                                    >
+                                        ← Anterior
+                                    </button>
+                                    
+                                    {/* Primera página */}
+                                    <button
+                                        onClick={() => paginate(1)}
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderRadius: '8px',
+                                            border: '1px solid #ddd',
+                                            backgroundColor: currentPage === 1 ? '#2E7D32' : darkMode ? '#3C3C3C' : '#fff',
+                                            color: currentPage === 1 ? '#fff' : darkMode ? '#fff' : '#333',
+                                            cursor: 'pointer',
+                                            fontSize: '14px'
+                                        }}
+                                    >
+                                        1
+                                    </button>
+                                    
+                                    {/* Puntos suspensivos iniciales */}
+                                    {currentPage > 3 && (
+                                        <span style={{
+                                            color: darkMode ? '#fff' : '#333',
+                                            fontSize: '14px',
+                                            padding: '0 5px'
+                                        }}>
+                                            ...
+                                        </span>
+                                    )}
+                                    
+                                    {/* Páginas centrales */}
+                                    {Array.from({ length: getTotalPages() }, (_, i) => i + 1)
+                                        .filter(number => {
+                                            // Mostrar páginas cercanas a la actual
+                                            return number > 1 && 
+                                                   number < getTotalPages() && 
+                                                   Math.abs(number - currentPage) <= 1;
+                                        })
+                                        .map(number => (
                                             <button
-                                                onClick={() => addToCart(product)}
+                                                key={number}
+                                                onClick={() => paginate(number)}
                                                 style={{
-                                                    marginTop: "10px",
-                                                    padding: "8px 12px",
-                                                    borderRadius: "8px",
-                                                    border: "none",
-                                                    backgroundColor: "#2E7D32",
-                                                    color: "#fff",
-                                                    cursor: "pointer",
-                                                    fontSize: "14px"
+                                                    padding: '8px 12px',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid #ddd',
+                                                    backgroundColor: currentPage === number ? '#2E7D32' : darkMode ? '#3C3C3C' : '#fff',
+                                                    color: currentPage === number ? '#fff' : darkMode ? '#fff' : '#333',
+                                                    cursor: 'pointer',
+                                                    fontSize: '14px'
                                                 }}
                                             >
-                                                🛍️ Agregar al carrito
+                                                {number}
                                             </button>
-                                        </div>
-                                    </li>
-                                ))}
-                        </ul>
+                                        ))}
+                                    
+                                    {/* Puntos suspensivos finales */}
+                                    {currentPage < getTotalPages() - 2 && (
+                                        <span style={{
+                                            color: darkMode ? '#fff' : '#333',
+                                            fontSize: '14px',
+                                            padding: '0 5px'
+                                        }}>
+                                            ...
+                                        </span>
+                                    )}
+                                    
+                                    {/* Última página */}
+                                    {getTotalPages() > 1 && (
+                                        <button
+                                            onClick={() => paginate(getTotalPages())}
+                                            style={{
+                                                padding: '8px 12px',
+                                                borderRadius: '8px',
+                                                border: '1px solid #ddd',
+                                                backgroundColor: currentPage === getTotalPages() ? '#2E7D32' : darkMode ? '#3C3C3C' : '#fff',
+                                                color: currentPage === getTotalPages() ? '#fff' : darkMode ? '#fff' : '#333',
+                                                cursor: 'pointer',
+                                                fontSize: '14px'
+                                            }}
+                                        >
+                                            {getTotalPages()}
+                                        </button>
+                                    )}
+                                    
+                                    <button
+                                        onClick={() => paginate(currentPage + 1)}
+                                        disabled={currentPage === getTotalPages()}
+                                        style={{
+                                            padding: '8px 12px',
+                                            borderRadius: '8px',
+                                            border: '1px solid #ddd',
+                                            backgroundColor: currentPage === getTotalPages() ? '#f5f5f5' : darkMode ? '#3C3C3C' : '#fff',
+                                            color: currentPage === getTotalPages() ? '#aaa' : darkMode ? '#fff' : '#333',
+                                            cursor: currentPage === getTotalPages() ? 'not-allowed' : 'pointer',
+                                            fontSize: '14px'
+                                        }}
+                                    >
+                                        Siguiente →
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Overlay con efecto blur */}
                         {loggedIn && cartVisible && (
                             <div 
@@ -320,7 +521,7 @@ function App() {
                                 width: "350px",
                                 height: "100vh",
                                 backgroundColor: darkMode ? "#2C2C2C" : "#fff",
-                                boxShadow: "0 0 10px rgba(0,0,0,0.2)",
+                                boxShadow: "0 0 20px rgba(0,0,0,0.2)",
                                 padding: "20px",
                                 overflowY: "auto",
                                 zIndex: 1000,
@@ -333,9 +534,18 @@ function App() {
                                     display: "flex",
                                     justifyContent: "space-between",
                                     alignItems: "center",
-                                    marginBottom: "20px"
+                                    marginBottom: "20px",
+                                    borderBottom: "1px solid #eee",
+                                    paddingBottom: "15px"
                                 }}>
-                                    <h2 style={{ margin: 0 }}>🛒 Carrito</h2>
+                                    <h2 style={{ 
+                                        margin: 0,
+                                        fontSize: "22px",
+                                        fontWeight: "600",
+                                        color: darkMode ? "#fff" : "#333"
+                                    }}>
+                                        🛒 Carrito de compras
+                                    </h2>
                                     <button
                                         onClick={toggleCartVisibility}
                                         style={{
@@ -343,7 +553,20 @@ function App() {
                                             border: "none",
                                             fontSize: "20px",
                                             cursor: "pointer",
-                                            color: darkMode ? "#fff" : "#333"
+                                            color: darkMode ? "#fff" : "#333",
+                                            width: "30px",
+                                            height: "30px",
+                                            borderRadius: "50%",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            transition: "background-color 0.2s ease-in-out"
+                                        }}
+                                        onMouseOver={(e) => {
+                                            e.currentTarget.style.backgroundColor = darkMode ? "#3C3C3C" : "#f5f5f5";
+                                        }}
+                                        onMouseOut={(e) => {
+                                            e.currentTarget.style.backgroundColor = "transparent";
                                         }}
                                     >
                                         ✕
@@ -359,21 +582,86 @@ function App() {
                                         }}>
                                             {cart.map((item) => (
                                                 <li key={item.id} style={{
-                                                    padding: "10px",
+                                                    padding: "15px",
                                                     borderBottom: "1px solid #eee",
-                                                    marginBottom: "10px"
-                                                }}>
+                                                    marginBottom: "10px",
+                                                    borderRadius: "8px",
+                                                    backgroundColor: darkMode ? "#3C3C3C" : "#f9f9f9",
+                                                    transition: "transform 0.2s ease-in-out"
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    e.currentTarget.style.transform = "translateY(-2px)";
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    e.currentTarget.style.transform = "translateY(0)";
+                                                }}
+                                                >
                                                     <div style={{
                                                         display: "flex",
                                                         justifyContent: "space-between",
                                                         alignItems: "center"
                                                     }}>
-                                                        <div>
-                                                            <h4 style={{ margin: "0 0 5px 0" }}>{item.name}</h4>
-                                                            <p style={{ margin: 0, color: "#2E7D32" }}>
-                                                                ${item.price.toFixed(2)}
-                                                            </p>
+                                                        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                                                            <img 
+                                                                src={item.image_url} 
+                                                                alt={item.name}
+                                                                style={{
+                                                                    width: "50px",
+                                                                    height: "50px",
+                                                                    objectFit: "cover",
+                                                                    borderRadius: "8px",
+                                                                    border: "1px solid #eee"
+                                                                }}
+                                                            />
+                                                            <div>
+                                                                <h4 style={{ 
+                                                                    margin: "0 0 5px 0",
+                                                                    fontSize: "16px",
+                                                                    fontWeight: "500",
+                                                                    color: darkMode ? "#fff" : "#333"
+                                                                }}>
+                                                                    {item.name}
+                                                                </h4>
+                                                                <p style={{ 
+                                                                    margin: 0, 
+                                                                    color: "#2E7D32",
+                                                                    fontWeight: "bold"
+                                                                }}>
+                                                                    ${item.price.toFixed(2)}
+                                                                </p>
+                                                            </div>
                                                         </div>
+                                                        <button
+                                                            onClick={() => removeFromCart(item.id)}
+                                                            style={{
+                                                                background: "none",
+                                                                border: "none",
+                                                                color: "#FF5252",
+                                                                cursor: "pointer",
+                                                                fontSize: "16px",
+                                                                padding: "5px",
+                                                                borderRadius: "50%",
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
+                                                                transition: "background-color 0.2s ease-in-out"
+                                                            }}
+                                                            onMouseOver={(e) => {
+                                                                e.currentTarget.style.backgroundColor = "rgba(255, 82, 82, 0.1)";
+                                                            }}
+                                                            onMouseOut={(e) => {
+                                                                e.currentTarget.style.backgroundColor = "transparent";
+                                                            }}
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                    <div style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "space-between",
+                                                        marginTop: "10px"
+                                                    }}>
                                                         <div style={{
                                                             display: "flex",
                                                             alignItems: "center",
@@ -382,29 +670,57 @@ function App() {
                                                             <button
                                                                 onClick={() => updateQuantity(item.id, (item.quantity || 1) - 1)}
                                                                 style={{
-                                                                    padding: "2px 8px",
+                                                                    padding: "5px 10px",
                                                                     borderRadius: "4px",
-                                                                    border: "1px solid #ccc",
-                                                                    background: "none",
-                                                                    cursor: "pointer"
+                                                                    border: "1px solid #ddd",
+                                                                    background: darkMode ? "#2C2C2C" : "#fff",
+                                                                    color: darkMode ? "#fff" : "#333",
+                                                                    cursor: "pointer",
+                                                                    transition: "background-color 0.2s ease-in-out"
+                                                                }}
+                                                                onMouseOver={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = darkMode ? "#444" : "#f5f5f5";
+                                                                }}
+                                                                onMouseOut={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = darkMode ? "#2C2C2C" : "#fff";
                                                                 }}
                                                             >
                                                                 -
                                                             </button>
-                                                            <span>{item.quantity || 1}</span>
+                                                            <span style={{
+                                                                fontWeight: "bold",
+                                                                color: darkMode ? "#fff" : "#333"
+                                                            }}>
+                                                                {item.quantity || 1}
+                                                            </span>
                                                             <button
                                                                 onClick={() => updateQuantity(item.id, (item.quantity || 1) + 1)}
                                                                 style={{
-                                                                    padding: "2px 8px",
+                                                                    padding: "5px 10px",
                                                                     borderRadius: "4px",
-                                                                    border: "1px solid #ccc",
-                                                                    background: "none",
-                                                                    cursor: "pointer"
+                                                                    border: "1px solid #ddd",
+                                                                    background: darkMode ? "#2C2C2C" : "#fff",
+                                                                    color: darkMode ? "#fff" : "#333",
+                                                                    cursor: "pointer",
+                                                                    transition: "background-color 0.2s ease-in-out"
+                                                                }}
+                                                                onMouseOver={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = darkMode ? "#444" : "#f5f5f5";
+                                                                }}
+                                                                onMouseOut={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = darkMode ? "#2C2C2C" : "#fff";
                                                                 }}
                                                             >
                                                                 +
                                                             </button>
                                                         </div>
+                                                        <p style={{ 
+                                                            margin: 0, 
+                                                            fontWeight: "bold",
+                                                            color: darkMode ? "#fff" : "#333"
+                                                        }}>
+                                                            ${((item.price * (item.quantity || 1))).toFixed(2)}
+                                                        </p>
                                                     </div>
                                                 </li>
                                             ))}
@@ -419,8 +735,20 @@ function App() {
                                                 justifyContent: "space-between",
                                                 marginBottom: "20px"
                                             }}>
-                                                <h3 style={{ margin: 0 }}>Total:</h3>
-                                                <h3 style={{ margin: 0, color: "#2E7D32" }}>
+                                                <h3 style={{ 
+                                                    margin: 0,
+                                                    fontSize: "18px",
+                                                    fontWeight: "600",
+                                                    color: darkMode ? "#fff" : "#333"
+                                                }}>
+                                                    Total:
+                                                </h3>
+                                                <h3 style={{ 
+                                                    margin: 0, 
+                                                    color: "#2E7D32",
+                                                    fontSize: "20px",
+                                                    fontWeight: "bold"
+                                                }}>
                                                     ${cart.reduce((total, item) => total + (item.price * (item.quantity || 1)), 0).toFixed(2)}
                                                 </h3>
                                             </div>
@@ -428,13 +756,26 @@ function App() {
                                                 onClick={handleCheckout}
                                                 style={{
                                                     width: "100%",
-                                                    padding: "12px",
+                                                    padding: "14px",
                                                     backgroundColor: "#2E7D32",
                                                     color: "white",
                                                     border: "none",
                                                     borderRadius: "8px",
                                                     cursor: "pointer",
-                                                    fontSize: "16px"
+                                                    fontSize: "16px",
+                                                    fontWeight: "600",
+                                                    transition: "background-color 0.2s ease-in-out, transform 0.2s ease-in-out",
+                                                    boxShadow: "0 4px 8px rgba(46, 125, 50, 0.2)"
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    e.currentTarget.style.backgroundColor = "#1B5E20";
+                                                    e.currentTarget.style.transform = "translateY(-2px)";
+                                                    e.currentTarget.style.boxShadow = "0 6px 12px rgba(46, 125, 50, 0.3)";
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    e.currentTarget.style.backgroundColor = "#2E7D32";
+                                                    e.currentTarget.style.transform = "translateY(0)";
+                                                    e.currentTarget.style.boxShadow = "0 4px 8px rgba(46, 125, 50, 0.2)";
                                                 }}
                                             >
                                                 Proceder al pago
@@ -442,7 +783,40 @@ function App() {
                                         </div>
                                     </>
                                 ) : (
-                                    <p style={{ textAlign: "center" }}>No hay productos en el carrito</p>
+                                    <div style={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        padding: "40px 0",
+                                        color: darkMode ? "#aaa" : "#777"
+                                    }}>
+                                        <span style={{ fontSize: "50px", marginBottom: "20px" }}>🛒</span>
+                                        <p style={{ textAlign: "center", fontSize: "16px" }}>
+                                            No hay productos en el carrito
+                                        </p>
+                                        <button
+                                            onClick={toggleCartVisibility}
+                                            style={{
+                                                marginTop: "20px",
+                                                padding: "10px 20px",
+                                                backgroundColor: darkMode ? "#3C3C3C" : "#f5f5f5",
+                                                color: darkMode ? "#fff" : "#333",
+                                                border: "none",
+                                                borderRadius: "8px",
+                                                cursor: "pointer",
+                                                transition: "background-color 0.2s ease-in-out"
+                                            }}
+                                            onMouseOver={(e) => {
+                                                e.currentTarget.style.backgroundColor = darkMode ? "#444" : "#e0e0e0";
+                                            }}
+                                            onMouseOut={(e) => {
+                                                e.currentTarget.style.backgroundColor = darkMode ? "#3C3C3C" : "#f5f5f5";
+                                            }}
+                                        >
+                                            Continuar comprando
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         )}

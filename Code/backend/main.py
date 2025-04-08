@@ -103,14 +103,21 @@ def checkout(cart: schemas.Cart, db: Session = Depends(get_db), username: str = 
 # Endpoint de búsqueda usando MongoDB
 @app.get("/search")
 async def search_products(query: str = Query(..., min_length=1), username: str = Depends(get_current_user)):
-    # Buscar en MongoDB
-    search = mongo_products.find(
-        {"name": {"$regex": query, "$options": "i"}},
-        {"_id": 0}
-    )
-    
-    search_results = list(search)
-    return search_results
+    # Buscar en la base de datos PostgreSQL en lugar de MongoDB
+    db = SessionLocal()
+    try:
+        # Obtener todos los productos
+        products = crud.get_products(db)
+        
+        # Filtrar los productos que coincidan con la consulta
+        search_results = [
+            product for product in products 
+            if query.lower() in product.name.lower()
+        ]
+        
+        return search_results
+    finally:
+        db.close()
 
 
 @app.post("/cart/add", response_model=schemas.CartItem)
