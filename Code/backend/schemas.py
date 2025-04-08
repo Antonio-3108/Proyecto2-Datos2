@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from datetime import datetime
 
 # User schema
 class UserBase(BaseModel):
@@ -45,9 +46,34 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
-class CartItem(BaseModel):
+class CartItemBase(BaseModel):
     product_id: int
-    quantity: int
+    quantity: int = 1
 
-class Cart(BaseModel):
+class CartItemCreate(CartItemBase):
+    pass
+
+class CartItem(CartItemBase):
+    id: int
+    cart_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+class CartBase(BaseModel):
+    pass
+
+class CartCreate(CartBase):
+    pass
+
+class Cart(CartBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: datetime
     items: List[CartItem] = []
+
+    class Config:
+        orm_mode = True
