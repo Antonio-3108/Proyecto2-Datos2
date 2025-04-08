@@ -1,5 +1,5 @@
 # backend/main.py
-from fastapi import FastAPI, Depends, HTTPException, Query, status
+from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine, Base
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +10,6 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from pymongo import MongoClient
 from fastapi.encoders import jsonable_encoder
-from typing import List
 
 Base.metadata.create_all(bind=engine)
 
@@ -92,73 +91,18 @@ def get_categories(db: Session = Depends(get_db), username: str = Depends(get_cu
 
 @app.post("/checkout")
 def checkout(cart: schemas.Cart, db: Session = Depends(get_db), username: str = Depends(get_current_user)):
-    # Obtener el user_id a partir del username
-    user = db.query(models.User).filter(models.User.username == username).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    
-    return crud.create_order(db, cart, user.id)
+    return crud.create_order(db, cart)
 
 
 # Endpoint de búsqueda usando MongoDB
 @app.get("/search")
 async def search_products(query: str = Query(..., min_length=1), username: str = Depends(get_current_user)):
-    # Buscar en la base de datos PostgreSQL en lugar de MongoDB
-    db = SessionLocal()
-    try:
-        # Obtener todos los productos
-        products = crud.get_products(db)
-        
-        # Filtrar los productos que coincidan con la consulta
-        search_results = [
-            product for product in products 
-            if query.lower() in product.name.lower()
-        ]
-        
-        return search_results
-    finally:
-        db.close()
-
-
-@app.post("/cart/add", response_model=schemas.CartItem)
-def add_to_cart(
-    item: schemas.CartItemCreate,
-    user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
-):
-    return crud.add_to_cart(db, user_id, item.product_id, item.quantity)
-
-@app.put("/cart/items/{item_id}", response_model=schemas.CartItem)
-def update_cart_item(
-    item_id: int,
-    quantity: int,
-    user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
-):
-    return crud.update_cart_item_quantity(db, item_id, quantity)
-
-@app.delete("/cart/items/{item_id}")
-def remove_from_cart(
-    item_id: int,
-    user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
-):
-    return crud.remove_from_cart(db, item_id)
-
-@app.get("/cart", response_model=schemas.Cart)
-def get_cart(
-    user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
-):
-    cart = crud.get_cart(db, user_id)
-    if not cart:
-        cart = crud.create_cart(db, user_id)
-    return cart
-
-@app.delete("/cart/clear")
-def clear_cart(
-    user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db)
-):
-    return crud.clear_cart(db, user_id)
+    # Buscar en MongoDB
+    search = mongo_products.find(
+        {"name": {"$regex": query, "$options": "i"}},
+        {"_id": 0}
+    )
+    
+    search_results = list(search)
+    return search_results
 
